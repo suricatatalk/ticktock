@@ -6,6 +6,8 @@ import (
 	"net/http"
 	"time"
 
+	"bytes"
+
 	jwt "github.com/dgrijalva/jwt-go"
 	"github.com/gorilla/sessions"
 	"github.com/markbates/goth"
@@ -24,22 +26,29 @@ type SecurityConfig struct {
 	JWTSecret string
 }
 
-var config SecurityConfig
-
-func init() {
-	gothic.Store = sessions.NewCookieStore([]byte("goth-example"))
-
+func (c *SecurityConfig) String() string {
+	buf := bytes.NewBuffer(make([]byte, 0))
+	buf.WriteString("Configured social:")
+	for prov, _ := range c.Social {
+		log.Println(prov)
+	}
+	return string(buf.Bytes())
 }
 
+var Config SecurityConfig
+
 func Configure(cfg SecurityConfig) {
-	config = cfg
+	Config = cfg
+	log.Println("Reading configuration\n")
+	log.Println(Config.String())
+	gothic.Store = sessions.NewCookieStore([]byte(Config.JWTSecret))
 	goth.UseProviders(
 		twitter.New(cfg.Social["twitter"].ClientID,
 			cfg.Social["twitter"].Secret,
-			"https://71d90784.ngrok.io/callback?provider=twitter"),
+			"https://ed41c0fa.ngrok.io/callback?provider=twitter"),
 		github.New(cfg.Social["github"].ClientID,
 			cfg.Social["github"].Secret,
-			"https://71d90784.ngrok.io/callback?provider=github"),
+			"https://ed41c0fa.ngrok.io/callback?provider=github"),
 	)
 }
 
@@ -49,9 +58,14 @@ func SocialCallbackHandler(rw http.ResponseWriter, req *http.Request) {
 		log.Println(err)
 	}
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
-		"userid":  fmt.Sprintf("%s@%s", user.UserID, user.Provider),
-		"expires": time.Now().Add(72 * time.Hour).Unix(),
+		"ID":        fmt.Sprintf("%s@%s", user.UserID, user.Provider),
+		"FirstName": user.FirstName,
+		"LastName":  user.LastName,
+		"expires":   time.Now().Add(72 * time.Hour).Unix(),
 	})
-	tkn, err := token.SignedString([]byte("secret"))
+	tkn, err := token.SignedString([]byte(Config.JWTSecret))
+	session, _ := gothic.Store.Get(req, gothic.SessionName)
+	session.Values[gothic.SessionName] = ""
+	session.Save(req, rw)
 	rw.Header().Set("x-auth", tkn)
 }

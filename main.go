@@ -1,24 +1,65 @@
 package main
 
 import (
+	"fmt"
+	"log"
+	"net/http"
+	"os"
+	"os/signal"
+	"syscall"
+
+	"encoding/json"
+
+	"github.com/braintree/manners"
+	"github.com/gorilla/context"
+	"github.com/markbates/goth/gothic"
+	"github.com/sohlich/ticktock/handler"
 	"github.com/sohlich/ticktock/security"
 )
 
 func main() {
 	// Configure social
-	config := security.SecurityConfig{
-		map[string]security.OAuthConfig{
-			"twitter": security.OAuthConfig{
-				ClientID: "4GyXZFSRWZwC1ABvvMA8UUkgz",
-				Secret:   "Yl2l5Ts0og3KkEsHrBFw1NxWQEFzGfGBTOZjfJTgGojK3cWIrX",
-			},
-			"github": security.OAuthConfig{
-				ClientID: "72097818320c37312222",
-				Secret:   "b06e37cb3e1f5011b45fda0871e75bfdcc393ca1",
-			},
-		},
-		"secret",
+	config := security.SecurityConfig{}
+	f, err := os.Open("config.json")
+	if err != nil {
+		log.Println(err.Error())
 	}
+	enc := json.NewDecoder(f)
+	enc.Decode(&config)
+	f.Close()
+
+	log.Println(config)
 
 	security.Configure(config)
+
+	mux := http.NewServeMux()
+	mux.HandleFunc("/login", handler.Login)
+	mux.HandleFunc("/auth", gothic.BeginAuthHandler)
+	mux.HandleFunc("/callback", security.SocialCallbackHandler)
+
+	server := manners.NewServer()
+	server.Handler = context.ClearHandler(mux)
+
+	errChan := make(chan (error))
+	go func() {
+		server.Addr = ":7070"
+		errChan <- server.ListenAndServe()
+	}()
+
+	signalChan := make(chan os.Signal, 1)
+	signal.Notify(signalChan, syscall.SIGINT, syscall.SIGTERM)
+
+	for {
+		select {
+		case err := <-errChan:
+			if err != nil {
+				log.Fatal(err)
+			}
+		case s := <-signalChan:
+			log.Println(fmt.Sprintf("Captured %v. Exiting...", s))
+			server.BlockingClose()
+			os.Exit(0)
+		}
+	}
+
 }
