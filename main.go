@@ -18,24 +18,11 @@ import (
 )
 
 func main() {
-	// Configure social
-	config := security.SecurityConfig{}
-	f, err := os.Open("config.json")
-	if err != nil {
-		log.Println(err.Error())
-	}
-	enc := json.NewDecoder(f)
-	enc.Decode(&config)
-	f.Close()
-
-	log.Println(config)
-
-	security.Configure(config)
-
+	configureApp()
 	mux := http.NewServeMux()
 	mux.HandleFunc("/login", handler.Login)
-	mux.HandleFunc("/auth", gothic.BeginAuthHandler)
 	mux.HandleFunc("/callback", security.SocialCallbackHandler)
+	mux.HandleFunc("/auth", gothic.BeginAuthHandler)
 
 	server := manners.NewServer()
 	server.Handler = context.ClearHandler(mux)
@@ -62,4 +49,17 @@ func main() {
 		}
 	}
 
+}
+
+func configureApp() {
+	config := security.SecurityConfig{}
+	f, err := os.Open("config.json")
+	if err != nil {
+		log.Println(err.Error())
+	}
+	enc := json.NewDecoder(f)
+	enc.Decode(&config)
+	f.Close()
+
+	security.Configure(config)
 }
