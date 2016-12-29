@@ -4,29 +4,24 @@ import (
 	"log"
 	"net/http"
 
-	"text/template"
+	"encoding/json"
+
+	"strings"
 
 	jwt "github.com/dgrijalva/jwt-go"
+	"github.com/sohlich/ticktock/domain"
+	"github.com/sohlich/ticktock/logic"
 	"github.com/sohlich/ticktock/security"
 )
 
 type SecuredHandler func(user security.User, rw http.ResponseWriter, req *http.Request)
 
-func Login(rw http.ResponseWriter, req *http.Request) {
-	//twitterLink := "<a href=\"auth?provider=twitter\">Twitter</ a>"
-	//githubLink := "<a href=\"auth?provider=github\">Github</ a>"
-	tmp := template.New("login.html")
-	tmp.ParseFiles("static/login.html", "static/navbar.html")
-	if err := tmp.Execute(rw, struct{}{}); err != nil {
-		log.Println(err.Error())
-	}
-}
-
 func JWTAuthHandler(h SecuredHandler) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
+		appendHeaders(w)
 		tkn := r.Header.Get("x-auth")
 		if tkn == "" {
-			redirectToLogin(w, r)
+			w.WriteHeader(http.StatusUnauthorized)
 			return
 		}
 
@@ -35,7 +30,7 @@ func JWTAuthHandler(h SecuredHandler) http.HandlerFunc {
 		})
 
 		if err != nil || !token.Valid {
-			redirectToLogin(w, r)
+			w.WriteHeader(http.StatusUnauthorized)
 			return
 		}
 
@@ -50,14 +45,49 @@ func JWTAuthHandler(h SecuredHandler) http.HandlerFunc {
 	}
 }
 
-func Stop(user security.User, rw http.ResponseWriter, req *http.Request) {
-
+func appendHeaders(w http.ResponseWriter) {
+	w.Header().Set("access-control-expose-headers", "x-auth")
 }
 
-func Start(user security.User, rw http.ResponseWriter, req *http.Request) {
-
+func Tasks(user security.User, rw http.ResponseWriter, req *http.Request) {
+	switch req.Method {
+	case http.MethodGet:
+		getTasks(user, rw, req)
+	}
 }
 
-func redirectToLogin(w http.ResponseWriter, r *http.Request) {
-	http.Redirect(w, r, "/login", 302)
+func getTasks(user security.User, rw http.ResponseWriter, req *http.Request) {
+	all, err := domain.Tasks.FindAllByOwner(user.ID)
+	if err != nil {
+		log.Printf("Error while loading tasks: " + err.Error())
+		rw.WriteHeader(http.StatusInternalServerError)
+	}
+	encoder := json.NewEncoder(rw)
+	encoder.Encode(all)
+}
+
+func Events(user security.User, rw http.ResponseWriter, req *http.Request) {
+	if req.Method != http.MethodPost {
+		rw.WriteHeader(http.StatusMethodNotAllowed)
+		return
+	}
+
+	// Decode posted event
+	event := &logic.EventDTO{}
+	if err := json.NewDecoder(req.Body).Decode(event); err != nil {
+		rw.WriteHeader(http.StatusBadRequest)
+	}
+	defer req.Body.Close()
+
+	var task *domain.Task
+	var err error
+	switch strings.ToLower(event.EventTypeString) {
+	case "start":
+		if err, task = logic.Start(user, event); err != nil {
+			log.Printf("Error occured : %s\n", err.Error())
+			rw.WriteHeader(http.StatusInternalServerError)
+		}
+	}
+
+	json.NewEncoder(rw).Encode(task)
 }

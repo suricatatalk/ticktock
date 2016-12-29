@@ -31,4 +31,24 @@ func TestTransitions(t *testing.T) {
 		return
 	}
 
+	instance.Status = StatusPaused
+
+	instance.ChangeState(Finish)
+
+	if instance.Status != StatusFinished {
+		t.Error("Status change failed for Finish after Pause")
+		t.Fail()
+		return
+	}
+
+	instance.Status = StatusFinished
+
+	instance.ChangeState(Start)
+
+	if instance.Status != StatusFinished {
+		t.Error("Status change failed for Pause")
+		t.Fail()
+		return
+	}
+
 }

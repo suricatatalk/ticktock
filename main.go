@@ -10,19 +10,32 @@ import (
 
 	"encoding/json"
 
+	"strings"
+
 	"github.com/braintree/manners"
 	"github.com/gorilla/context"
 	"github.com/markbates/goth/gothic"
+	"github.com/sohlich/ticktock/domain"
 	"github.com/sohlich/ticktock/handler"
 	"github.com/sohlich/ticktock/security"
 )
 
 func main() {
 	configureApp()
+
 	mux := http.NewServeMux()
-	mux.HandleFunc("/login", handler.Login)
-	mux.HandleFunc("/callback", security.SocialCallbackHandler)
+	appHandler := http.FileServer(http.Dir("/Users/radek/Projects/Html/ticktock/ticktock/dist"))
 	mux.HandleFunc("/auth", gothic.BeginAuthHandler)
+	mux.HandleFunc("/callback", security.SocialCallbackHandler)
+	mux.HandleFunc("/tasks", handler.JWTAuthHandler(handler.Tasks))
+	mux.HandleFunc("/events", handler.JWTAuthHandler(handler.Events))
+	mux.HandleFunc("/", func(rw http.ResponseWriter, req *http.Request) {
+		log.Printf("Handling %v", req.URL)
+		if !strings.Contains(req.URL.Path, ".") {
+			req.URL.Path = "/"
+		}
+		appHandler.ServeHTTP(rw, req)
+	})
 
 	server := manners.NewServer()
 	server.Handler = context.ClearHandler(mux)
@@ -48,18 +61,20 @@ func main() {
 			os.Exit(0)
 		}
 	}
-
 }
 
 func configureApp() {
 	config := security.SecurityConfig{}
+	domainCfg := domain.StorageConfig{}
 	f, err := os.Open("config.json")
 	if err != nil {
 		log.Println(err.Error())
 	}
 	enc := json.NewDecoder(f)
 	enc.Decode(&config)
+	enc.Decode(&domainCfg)
 	f.Close()
 
 	security.Configure(config)
+	domain.Open(domainCfg)
 }

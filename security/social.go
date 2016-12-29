@@ -24,13 +24,14 @@ type OAuthConfig struct {
 type SecurityConfig struct {
 	Social    map[string]OAuthConfig
 	JWTSecret string
+	BaseURL   string
 }
 
 func (c *SecurityConfig) String() string {
 	buf := bytes.NewBuffer(make([]byte, 0))
-	buf.WriteString("Configured social:")
+	buf.WriteString("Configured social:\n")
 	for prov, _ := range c.Social {
-		log.Println(prov)
+		buf.WriteString(prov + "\n")
 	}
 	return string(buf.Bytes())
 }
@@ -45,10 +46,10 @@ func Configure(cfg SecurityConfig) {
 	goth.UseProviders(
 		twitter.New(cfg.Social["twitter"].ClientID,
 			cfg.Social["twitter"].Secret,
-			"https://ed41c0fa.ngrok.io/callback?provider=twitter"),
+			"https://"+cfg.BaseURL+"/callback?provider=twitter"),
 		github.New(cfg.Social["github"].ClientID,
 			cfg.Social["github"].Secret,
-			"https://ed41c0fa.ngrok.io/callback?provider=github"),
+			"https://"+cfg.BaseURL+"/callback?provider=github"),
 	)
 }
 
@@ -66,6 +67,7 @@ func SocialCallbackHandler(rw http.ResponseWriter, req *http.Request) {
 	tkn, err := token.SignedString([]byte(Config.JWTSecret))
 	session, _ := gothic.Store.Get(req, gothic.SessionName)
 	session.Values[gothic.SessionName] = ""
+	session.Options.MaxAge = -1
 	session.Save(req, rw)
-	rw.Header().Set("x-auth", tkn)
+	http.Redirect(rw, req, "/home?token="+tkn, http.StatusPermanentRedirect)
 }

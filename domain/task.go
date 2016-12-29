@@ -2,6 +2,7 @@ package domain
 
 import "log"
 import "github.com/goadesign/goa/uuid"
+import "time"
 
 // Events
 const (
@@ -40,17 +41,19 @@ func init() {
 }
 
 type Event struct {
-	EventEpoch int64 `json:"eventExpoch"`
-	EventType  int   `json:"eventType"`
+	EventEpoch int64 `bson:"eventEpoch" json:"eventEpoch"`
+	EventType  int   `bson:"eventType" json:"eventType"`
 }
 
 type Task struct {
-	ID      string  `json:"_id"`
-	OwnerID string  `json:"ownerId"`
-	Status  string  `json:"status"`
-	Start   int64   `json:"start"`
-	End     int64   `json:"end"`
-	Events  []Event `json:"events"`
+	ID       string  `bson:"_id" json:"id"`
+	Name     string  `bson:"name" json:"name"`
+	OwnerID  string  `bson:"ownerId" json:"ownerId"`
+	Status   string  `bson:"status" json:"status"`
+	Start    int64   `bson:"start" json:"start"`
+	End      int64   `bson:"end" json:"end"`
+	Duration int64   `bson:"duration" json:"duration"`
+	Events   []Event `bson:"events" json:"events"`
 }
 
 func NewTask() *Task {
@@ -59,13 +62,27 @@ func NewTask() *Task {
 	}
 }
 
+func (t *Task) GenerateID() {
+	t.ID = uuid.NewV4().String()
+}
+
+func (t *Task) StartTask() {
+	start := time.Now().Unix()
+	t.Start = start
+	t.Status = StatusRunning
+	t.AddEvent(Start, start)
+}
+
 func (t *Task) ChangeState(transition int) {
-	if nextState, ok := transitions[t.Status][transition]; ok {
-		log.Printf("Changing state to %s", nextState)
-		t.Status = nextState
+	if next, ok := transitions[t.Status][transition]; ok {
+		t.Status = next
+		t.AddEvent(transition, time.Now().Unix())
 	}
 }
 
-func (t *Task) addEvent() {
-	t.Events
+func (t *Task) AddEvent(event int, timestamp int64) {
+	t.Events = append(t.Events, Event{
+		EventEpoch: timestamp,
+		EventType:  event,
+	})
 }
