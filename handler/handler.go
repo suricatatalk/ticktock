@@ -67,7 +67,7 @@ func getTasks(user security.User, rw http.ResponseWriter, req *http.Request) {
 }
 
 func Events(user security.User, rw http.ResponseWriter, req *http.Request) {
-	if req.Method != http.MethodPost {
+	if req.Method != http.MethodPost && req.Method != http.MethodPut {
 		rw.WriteHeader(http.StatusMethodNotAllowed)
 		return
 	}
@@ -79,14 +79,18 @@ func Events(user security.User, rw http.ResponseWriter, req *http.Request) {
 	}
 	defer req.Body.Close()
 
-	var task *domain.Task
-	var err error
+	var eventHandler logic.EventFunction
 	switch strings.ToLower(event.EventTypeString) {
 	case "start":
-		if err, task = logic.Start(user, event); err != nil {
-			log.Printf("Error occured : %s\n", err.Error())
-			rw.WriteHeader(http.StatusInternalServerError)
-		}
+		eventHandler = logic.Start
+	case "pause":
+		eventHandler = logic.Pause
+	}
+
+	task, err := eventHandler(user, event)
+	if err != nil {
+		log.Printf("Error occured : %s\n", err.Error())
+		rw.WriteHeader(http.StatusInternalServerError)
 	}
 
 	json.NewEncoder(rw).Encode(task)
