@@ -3,6 +3,7 @@ package logic
 import "github.com/sohlich/ticktock/security"
 import "github.com/sohlich/ticktock/domain"
 import "fmt"
+import "time"
 
 type EventDTO struct {
 	TaskName        string `bson:"taskName" json:"taskName"`
@@ -24,13 +25,25 @@ func Start(user security.User, event *EventDTO) (*domain.Task, error) {
 	task.Status = domain.StatusRunning
 	task.OwnerID = user.ID
 	task.Name = event.TaskName
-	task.Start = event.EventEpoch
-	task.AddEvent(domain.Start, event.EventEpoch)
+	task.Start = time.Now().Unix()
+	task.AddEvent(domain.Start, task.Start)
 	err = domain.Tasks.Save(task)
 	return task, err
 }
 
 func Pause(user security.User, event *EventDTO) (*domain.Task, error) {
+	return changeState(domain.Pause, user, event)
+}
+
+func Resume(user security.User, event *EventDTO) (*domain.Task, error) {
+	return changeState(domain.Start, user, event)
+}
+
+func Finish(user security.User, event *EventDTO) (*domain.Task, error) {
+	return changeState(domain.Finish, user, event)
+}
+
+func changeState(action int, user security.User, event *EventDTO) (*domain.Task, error) {
 	task, err := domain.Tasks.FindById(event.TaskID)
 	if err != nil {
 		return nil, err
@@ -38,7 +51,7 @@ func Pause(user security.User, event *EventDTO) (*domain.Task, error) {
 	if task.OwnerID != user.ID {
 		return nil, fmt.Errorf("User is not owner of task")
 	}
-	task.ChangeState(domain.Pause)
+	task.ChangeState(action)
 	domain.Tasks.Save(task)
 	return task, nil
 }

@@ -43,6 +43,7 @@ func init() {
 type Event struct {
 	EventEpoch int64 `bson:"eventEpoch" json:"eventEpoch"`
 	EventType  int   `bson:"eventType" json:"eventType"`
+	Duration   int64 `bson:"duration" json:"duration"`
 }
 
 type Task struct {
@@ -81,8 +82,16 @@ func (t *Task) ChangeState(transition int) {
 }
 
 func (t *Task) AddEvent(event int, timestamp int64) {
+
+	eCnt := len(t.Events)
+	duration := int64(0)
+	if (event == Pause || event == Finish) && eCnt > 0 {
+		duration = timestamp - t.Events[eCnt-1].EventEpoch
+	}
+
 	t.Events = append(t.Events, Event{
 		EventEpoch: timestamp,
 		EventType:  event,
+		Duration:   duration,
 	})
 }

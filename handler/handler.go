@@ -79,12 +79,23 @@ func Events(user security.User, rw http.ResponseWriter, req *http.Request) {
 	}
 	defer req.Body.Close()
 
+	log.Printf("Handling event: %v\n", event)
+
 	var eventHandler logic.EventFunction
 	switch strings.ToLower(event.EventTypeString) {
 	case "start":
-		eventHandler = logic.Start
+		if len(event.TaskID) == 0 {
+			eventHandler = logic.Start
+		} else {
+			eventHandler = logic.Resume
+		}
 	case "pause":
 		eventHandler = logic.Pause
+	case "finish":
+		eventHandler = logic.Finish
+	default:
+		rw.WriteHeader(http.StatusBadRequest)
+		return
 	}
 
 	task, err := eventHandler(user, event)
