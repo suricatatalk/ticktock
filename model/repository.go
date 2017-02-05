@@ -1,4 +1,4 @@
-package domain
+package model
 
 import (
 	"gopkg.in/mgo.v2"
@@ -13,7 +13,7 @@ type StorageConfig struct {
 
 type TaskRepository interface {
 	FindById(id string) (*Task, error)
-	FindAllByOwner(ownerId string) ([]*Task, error)
+	FindAllByOwner(ownerId string, limit int) ([]*Task, error)
 	FindAllByStatusAndOwner(status string, ownerId string) ([]*Task, error)
 	Save(t *Task) error
 }
@@ -27,25 +27,23 @@ type MgoTaskRepository struct {
 }
 
 var Tasks TaskRepository
-var session *mgo.Session
+
+// var session *mgo.Session
 
 func Open(cfg StorageConfig) error {
 	var err error
-	session, err = mgo.Dial(cfg.ConnectionString)
-	if err != nil {
-		return err
-	}
+	DB.Open(cfg)
 	Tasks = &MgoTaskRepository{
 		MgoRepository{
-			session.DB(cfg.Database).C("tasks"),
+			DB.Database().C("tasks"),
 		},
 	}
 	return err
 }
 
 func Close() {
-	if session != nil {
-		session.Close()
+	if DB.Session() != nil {
+		DB.Close()
 	}
 }
 
@@ -60,9 +58,14 @@ func (m *MgoTaskRepository) FindById(id string) (*Task, error) {
 	return task, err
 }
 
-func (m *MgoTaskRepository) FindAllByOwner(ownerId string) ([]*Task, error) {
+func (m *MgoTaskRepository) FindAllByOwner(ownerId string, limit int) ([]*Task, error) {
 	all := make([]*Task, 0)
-	err := m.Find(bson.M{"ownerId": ownerId}).Sort("-start").All(&all)
+	query := m.Find(bson.M{"ownerId": ownerId}).Sort("-start")
+	if limit < 0 {
+		query.Limit(limit)
+	}
+
+	err := query.All(&all)
 	return all, err
 }
 
@@ -70,4 +73,9 @@ func (m *MgoTaskRepository) FindAllByStatusAndOwner(status string, ownerId strin
 	all := make([]*Task, 0)
 	err := m.Find(bson.M{"ownerId": ownerId, "status": status}).Sort("-start").All(&all)
 	return all, err
+}
+
+type UserRepository interface {
+	FindById(id string) (*Task, error)
+	Save(t *Task) error
 }

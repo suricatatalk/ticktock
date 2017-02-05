@@ -69,5 +69,5 @@ func SocialCallbackHandler(rw http.ResponseWriter, req *http.Request) {
 	session.Values[gothic.SessionName] = ""
 	session.Options.MaxAge = -1
 	session.Save(req, rw)
-	http.Redirect(rw, req, "/home?token="+tkn, http.StatusPermanentRedirect)
+	http.Redirect(rw, req, "/login?token="+tkn, http.StatusPermanentRedirect)
 }

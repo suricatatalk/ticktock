@@ -5,7 +5,7 @@ import (
 	"log"
 	"time"
 
-	"github.com/sohlich/ticktock/domain"
+	"github.com/sohlich/ticktock/model"
 	"github.com/sohlich/ticktock/security"
 )
 
@@ -16,49 +16,49 @@ type EventDTO struct {
 	EventTypeString string `bson:"eventType" json:"eventType"`
 }
 
-type EventFunction func(user security.User, event *EventDTO) (*domain.Task, error)
+type EventFunction func(user security.User, event *EventDTO) (*model.Task, error)
 
-func Start(user security.User, event *EventDTO) (*domain.Task, error) {
-	tasks, err := domain.Tasks.FindAllByStatusAndOwner("running", user.ID)
+func Start(user security.User, event *EventDTO) (*model.Task, error) {
+	tasks, err := model.Tasks.FindAllByStatusAndOwner("running", user.ID)
 	if len(tasks) > 0 {
 		return nil, fmt.Errorf("Another task is running")
 	}
 
 	// for _, val := range tasks {
-	// 	val.ChangeState(domain.Finish)
-	// 	domain.Tasks.Save(val)
+	// 	val.ChangeState(model.Finish)
+	// 	model.Tasks.Save(val)
 	// }
 
-	task := domain.NewTask()
-	task.Status = domain.StatusRunning
+	task := model.NewTask()
+	task.Status = model.StatusRunning
 	task.OwnerID = user.ID
 	task.Name = event.TaskName
 	task.Start = time.Now().Unix()
-	task.AddEvent(domain.Start, task.Start)
-	err = domain.Tasks.Save(task)
+	task.AddEvent(model.Start, task.Start)
+	err = model.Tasks.Save(task)
 	return task, err
 }
 
-func Pause(user security.User, event *EventDTO) (*domain.Task, error) {
+func Pause(user security.User, event *EventDTO) (*model.Task, error) {
 	logChange("Pause", user.ID, event.TaskID)
-	return changeState(domain.Pause, user, event)
+	return changeState(model.Pause, user, event)
 }
 
-func Resume(user security.User, event *EventDTO) (*domain.Task, error) {
+func Resume(user security.User, event *EventDTO) (*model.Task, error) {
 	logChange("Resume", user.ID, event.TaskID)
-	return changeState(domain.Start, user, event)
+	return changeState(model.Start, user, event)
 }
 
-func Finish(user security.User, event *EventDTO) (*domain.Task, error) {
+func Finish(user security.User, event *EventDTO) (*model.Task, error) {
 	logChange("Finish", user.ID, event.TaskID)
-	return changeState(domain.Finish, user, event)
+	return changeState(model.Finish, user, event)
 }
 func logChange(event, userID, taskID string) {
 	log.Printf("[%s] %s task_id: %s ", userID, event, taskID)
 }
 
-func changeState(action int, user security.User, event *EventDTO) (*domain.Task, error) {
-	task, err := domain.Tasks.FindById(event.TaskID)
+func changeState(action int, user security.User, event *EventDTO) (*model.Task, error) {
+	task, err := model.Tasks.FindById(event.TaskID)
 	if err != nil {
 		return nil, err
 	}
@@ -72,6 +72,6 @@ func changeState(action int, user security.User, event *EventDTO) (*domain.Task,
 		duration = duration + tsk.Duration
 	}
 	task.Duration = duration
-	domain.Tasks.Save(task)
+	model.Tasks.Save(task)
 	return task, nil
 }

@@ -15,8 +15,8 @@ import (
 	"github.com/braintree/manners"
 	"github.com/gorilla/context"
 	"github.com/markbates/goth/gothic"
-	"github.com/sohlich/ticktock/domain"
 	"github.com/sohlich/ticktock/handler"
+	"github.com/sohlich/ticktock/model"
 	"github.com/sohlich/ticktock/security"
 )
 
@@ -65,7 +65,7 @@ func main() {
 
 func configureApp() {
 	config := security.SecurityConfig{}
-	domainCfg := domain.StorageConfig{}
+	domainCfg := model.StorageConfig{}
 	f, err := os.Open("config.json")
 	if err != nil {
 		log.Println(err.Error())
@@ -76,5 +76,5 @@ func configureApp() {
 	f.Close()
 
 	security.Configure(config)
-	domain.Open(domainCfg)
+	model.Open(domainCfg)
 }

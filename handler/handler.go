@@ -8,9 +8,11 @@ import (
 
 	"strings"
 
+	"strconv"
+
 	jwt "github.com/dgrijalva/jwt-go"
-	"github.com/sohlich/ticktock/domain"
 	"github.com/sohlich/ticktock/logic"
+	"github.com/sohlich/ticktock/model"
 	"github.com/sohlich/ticktock/security"
 )
 
@@ -57,7 +59,12 @@ func Tasks(user security.User, rw http.ResponseWriter, req *http.Request) {
 }
 
 func getTasks(user security.User, rw http.ResponseWriter, req *http.Request) {
-	all, err := domain.Tasks.FindAllByOwner(user.ID)
+	req.ParseForm()
+	limit, err := strconv.ParseInt(req.Form.Get("limit"), 10, 32)
+	if err != nil {
+		limit = 10
+	}
+	all, err := model.Tasks.FindAllByOwner(user.ID, int(limit))
 	if err != nil {
 		log.Printf("Error while loading tasks: " + err.Error())
 		rw.WriteHeader(http.StatusInternalServerError)

@@ -1,4 +1,4 @@
-package domain
+package model
 
 import "log"
 import "github.com/goadesign/goa/uuid"
@@ -77,6 +77,9 @@ func (t *Task) StartTask() {
 func (t *Task) ChangeState(transition int) {
 	if next, ok := transitions[t.Status][transition]; ok {
 		t.Status = next
+		if transition == Finish {
+			t.End = time.Now().Unix()
+		}
 		t.AddEvent(transition, time.Now().Unix())
 	}
 }

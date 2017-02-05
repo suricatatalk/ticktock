@@ -5,7 +5,7 @@ import (
 
 	"fmt"
 
-	"github.com/sohlich/ticktock/domain"
+	"github.com/sohlich/ticktock/model"
 	"github.com/sohlich/ticktock/security"
 )
 
@@ -13,11 +13,11 @@ type NoOpTaskRepo struct {
 	CalledID     string
 	OwnerID      string
 	Status       string
-	Task         *domain.Task
+	Task         *model.Task
 	FindFunction FindFunc
 }
 
-type FindFunc func(id string) (*domain.Task, error)
+type FindFunc func(id string) (*model.Task, error)
 
 func (r *NoOpTaskRepo) Reset() {
 	r.CalledID = ""
@@ -26,7 +26,7 @@ func (r *NoOpTaskRepo) Reset() {
 	r.Task = nil
 }
 
-func (r *NoOpTaskRepo) FindById(id string) (*domain.Task, error) {
+func (r *NoOpTaskRepo) FindById(id string) (*model.Task, error) {
 
 	if r.FindFunction != nil {
 		return r.FindFunction(id)
@@ -35,23 +35,23 @@ func (r *NoOpTaskRepo) FindById(id string) (*domain.Task, error) {
 	return r.Task, nil
 }
 
-func (r *NoOpTaskRepo) FindAllByOwner(ownerId string) ([]*domain.Task, error) {
+func (r *NoOpTaskRepo) FindAllByOwner(ownerId string, limit int) ([]*model.Task, error) {
 	return nil, nil
 }
 
-func (r *NoOpTaskRepo) FindAllByStatusAndOwner(status string, ownerId string) ([]*domain.Task, error) {
+func (r *NoOpTaskRepo) FindAllByStatusAndOwner(status string, ownerId string) ([]*model.Task, error) {
 	r.OwnerID = ownerId
 	r.Status = status
 	return nil, nil
 }
 
-func (r *NoOpTaskRepo) Save(t *domain.Task) error {
+func (r *NoOpTaskRepo) Save(t *model.Task) error {
 	return nil
 }
 
 func TestStart(t *testing.T) {
 	mock := &NoOpTaskRepo{}
-	domain.Tasks = mock
+	model.Tasks = mock
 	event := EventDTO{
 		TaskName:        "Test task",
 		EventTypeString: "start",
@@ -74,7 +74,7 @@ func TestStart(t *testing.T) {
 
 func TestPause(t *testing.T) {
 	mock := &NoOpTaskRepo{}
-	domain.Tasks = mock
+	model.Tasks = mock
 	event := &EventDTO{
 		TaskName:        "Test task",
 		EventTypeString: "start",
@@ -87,7 +87,7 @@ func TestPause(t *testing.T) {
 	event.TaskID = "1234"
 	event.EventTypeString = "pause"
 
-	mock.FindFunction = func(id string) (*domain.Task, error) {
+	mock.FindFunction = func(id string) (*model.Task, error) {
 		if id == event.TaskID {
 			return task, nil
 		}
@@ -107,7 +107,7 @@ func TestPause(t *testing.T) {
 		t.FailNow()
 	}
 
-	if task.Events[1].EventType != domain.Pause {
+	if task.Events[1].EventType != model.Pause {
 		t.Errorf("Bad second event %v:", task.Events[1])
 		t.FailNow()
 	}
