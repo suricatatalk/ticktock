@@ -7,7 +7,7 @@ import (
 
 func TestOpen(t *testing.T) {
 
-	cfg := StorageConfig{
+	cfg := Environment{
 		ConnectionString: "mongodb://localhost/ticktock_test",
 	}
 

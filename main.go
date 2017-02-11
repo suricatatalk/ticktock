@@ -12,11 +12,14 @@ import (
 
 	"strings"
 
+	"io/ioutil"
+
+	"bytes"
+
 	"github.com/braintree/manners"
 	"github.com/gorilla/context"
 	"github.com/markbates/goth/gothic"
 	"github.com/sohlich/ticktock/handler"
-	"github.com/sohlich/ticktock/model"
 	"github.com/sohlich/ticktock/security"
 )
 
@@ -65,16 +68,11 @@ func main() {
 
 func configureApp() {
 	config := security.SecurityConfig{}
-	domainCfg := model.StorageConfig{}
-	f, err := os.Open("config.json")
+	b, err := ioutil.ReadFile("config.json")
 	if err != nil {
 		log.Println(err.Error())
 	}
-	enc := json.NewDecoder(f)
+	enc := json.NewDecoder(bytes.NewReader(b))
 	enc.Decode(&config)
-	enc.Decode(&domainCfg)
-	f.Close()
-
 	security.Configure(config)
-	model.Open(domainCfg)
 }

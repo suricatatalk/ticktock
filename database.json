@@ -1,0 +1,8 @@
+{
+    "development": {
+        "ConnectionString": "mongodb://localhost/ticktock"
+    },
+    "production": {
+        "ConnectionString": "mongodb://localhost/ticktock"
+    }
+}

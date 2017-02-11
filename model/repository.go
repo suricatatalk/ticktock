@@ -1,25 +1,12 @@
 package model
 
-import (
-	"gopkg.in/mgo.v2"
-	"gopkg.in/mgo.v2/bson"
-)
-
-type StorageConfig struct {
-	ConnectionString string
-	Password         string
-	Database         string
-}
+import "gopkg.in/mgo.v2/bson"
 
 type TaskRepository interface {
 	FindById(id string) (*Task, error)
 	FindAllByOwner(ownerId string, limit int) ([]*Task, error)
 	FindAllByStatusAndOwner(status string, ownerId string) ([]*Task, error)
 	Save(t *Task) error
-}
-
-type MgoRepository struct {
-	*mgo.Collection
 }
 
 type MgoTaskRepository struct {
@@ -30,12 +17,11 @@ var Tasks TaskRepository
 
 // var session *mgo.Session
 
-func Open(cfg StorageConfig) error {
+func InitializeRepository(db *Database) error {
 	var err error
-	DB.Open(cfg)
 	Tasks = &MgoTaskRepository{
 		MgoRepository{
-			DB.Database().C("tasks"),
+			db.Database().C("tasks"),
 		},
 	}
 	return err
