@@ -10,7 +10,6 @@ import (
 
 	"strconv"
 
-	"github.com/sohlich/ticktock/logic"
 	"github.com/sohlich/ticktock/model"
 )
 
@@ -45,7 +44,7 @@ func Events(user model.User, rw http.ResponseWriter, req *http.Request) {
 	}
 
 	// Decode posted event
-	event := &logic.EventDTO{}
+	event := &model.Event{}
 	if err := json.NewDecoder(req.Body).Decode(event); err != nil {
 		rw.WriteHeader(http.StatusBadRequest)
 	}
@@ -53,18 +52,18 @@ func Events(user model.User, rw http.ResponseWriter, req *http.Request) {
 
 	log.Printf("Handling event: %v\n", event)
 
-	var eventHandler logic.EventFunction
-	switch strings.ToLower(event.EventTypeString) {
+	var eventHandler model.EventFunction
+	switch strings.ToLower(event.EventType) {
 	case "start":
 		if len(event.TaskID) == 0 {
-			eventHandler = logic.Start
+			eventHandler = model.Start
 		} else {
-			eventHandler = logic.Resume
+			eventHandler = model.Resume
 		}
 	case "pause":
-		eventHandler = logic.Pause
+		eventHandler = model.Pause
 	case "finish":
-		eventHandler = logic.Finish
+		eventHandler = model.Finish
 	default:
 		rw.WriteHeader(http.StatusBadRequest)
 		return

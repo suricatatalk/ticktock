@@ -1,52 +1,15 @@
 package model
 
-import "log"
 import "github.com/goadesign/goa/uuid"
 import "time"
 
 // Events
-const (
-	Start  = iota
-	Pause  = iota
-	Finish = iota
-)
 
 const (
 	StatusRunning  = "running"
 	StatusPaused   = "paused"
 	StatusFinished = "finished"
 )
-
-var (
-	transitions map[string]map[int]string
-)
-
-func init() {
-	transitions = make(map[string]map[int]string)
-
-	// transitions for running state
-	running := make(map[int]string)
-	running[Pause] = StatusPaused
-	running[Finish] = StatusFinished
-	transitions[StatusRunning] = running
-
-	// Transitions for paused state
-	paused := make(map[int]string)
-	paused[Finish] = StatusFinished
-	paused[Start] = StatusRunning
-	transitions[StatusPaused] = paused
-
-	log.Println("Transitions initialized")
-	log.Printf("%v", transitions)
-}
-
-type Event struct {
-	TaskName   string `bson:"-" json:"taskName"`
-	TaskID     string `bson:"-" json:"taskId"`
-	EventEpoch int64  `bson:"eventEpoch" json:"eventEpoch"`
-	EventType  int    `bson:"eventType" json:"eventType"`
-	Duration   int64  `bson:"duration" json:"duration"`
-}
 
 type Task struct {
 	ID       string   `bson:"_id" json:"id"`
@@ -74,24 +37,24 @@ func (t *Task) StartTask() {
 	start := time.Now().Unix()
 	t.Start = start
 	t.Status = StatusRunning
-	t.AddEvent(Start, start)
+	t.AddEvent(EventStart, start)
 }
 
-func (t *Task) ChangeState(transition int) {
+func (t *Task) ChangeState(transition string) {
 	if next, ok := transitions[t.Status][transition]; ok {
 		t.Status = next
-		if transition == Finish {
+		if transition == EventFinish {
 			t.End = time.Now().Unix()
 		}
 		t.AddEvent(transition, time.Now().Unix())
 	}
 }
 
-func (t *Task) AddEvent(event int, timestamp int64) {
+func (t *Task) AddEvent(event string, timestamp int64) {
 
 	eCnt := len(t.Events)
 	duration := int64(0)
-	if (event == Pause || event == Finish) && eCnt > 0 {
+	if (event == EventPause || event == EventFinish) && eCnt > 0 {
 		duration = timestamp - t.Events[eCnt-1].EventEpoch
 	}
 

@@ -1,11 +1,10 @@
-package logic_test
+package model_test
 
 import (
 	"testing"
 
 	"fmt"
 
-	"github.com/sohlich/ticktock/logic"
 	"github.com/sohlich/ticktock/model"
 )
 
@@ -52,14 +51,14 @@ func (r *NoOpTaskRepo) Save(t *model.Task) error {
 func TestStart(t *testing.T) {
 	mock := &NoOpTaskRepo{}
 	model.Tasks = mock
-	event := logic.EventDTO{
-		TaskName:        "Test task",
-		EventTypeString: "start",
+	event := model.Event{
+		TaskName:  "Test task",
+		EventType: "start",
 	}
 	testUser := model.User{
 		ID: "1234@test",
 	}
-	task, _ := logic.Start(testUser, &event)
+	task, _ := model.Start(testUser, &event)
 
 	if mock.OwnerID != testUser.ID {
 		t.Errorf("OwnerID does not match")
@@ -75,17 +74,17 @@ func TestStart(t *testing.T) {
 func TestPause(t *testing.T) {
 	mock := &NoOpTaskRepo{}
 	model.Tasks = mock
-	event := &logic.EventDTO{
-		TaskName:        "Test task",
-		EventTypeString: "start",
+	event := &model.Event{
+		TaskName:  "Test task",
+		EventType: "start",
 	}
 	testUser := model.User{
 		ID: "1234@test",
 	}
-	task, _ := logic.Start(testUser, event)
+	task, _ := model.Start(testUser, event)
 
 	event.TaskID = "1234"
-	event.EventTypeString = "pause"
+	event.EventType = "pause"
 
 	mock.FindFunction = func(id string) (*model.Task, error) {
 		if id == event.TaskID {
@@ -95,7 +94,7 @@ func TestPause(t *testing.T) {
 	}
 
 	var err error
-	task, err = logic.Pause(testUser, event)
+	task, err = model.Pause(testUser, event)
 
 	if err != nil {
 		t.Error("ID of task does not match")
@@ -107,7 +106,7 @@ func TestPause(t *testing.T) {
 		t.FailNow()
 	}
 
-	if task.Events[1].EventType != model.Pause {
+	if task.Events[1].EventType != model.EventPause {
 		t.Errorf("Bad second event %v:", task.Events[1])
 		t.FailNow()
 	}
