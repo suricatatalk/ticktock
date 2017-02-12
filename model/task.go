@@ -41,20 +41,23 @@ func init() {
 }
 
 type Event struct {
-	EventEpoch int64 `bson:"eventEpoch" json:"eventEpoch"`
-	EventType  int   `bson:"eventType" json:"eventType"`
-	Duration   int64 `bson:"duration" json:"duration"`
+	TaskName   string `bson:"-" json:"taskName"`
+	TaskID     string `bson:"-" json:"taskId"`
+	EventEpoch int64  `bson:"eventEpoch" json:"eventEpoch"`
+	EventType  int    `bson:"eventType" json:"eventType"`
+	Duration   int64  `bson:"duration" json:"duration"`
 }
 
 type Task struct {
-	ID       string  `bson:"_id" json:"id"`
-	Name     string  `bson:"name" json:"name"`
-	OwnerID  string  `bson:"ownerId" json:"ownerId"`
-	Status   string  `bson:"status" json:"status"`
-	Start    int64   `bson:"start" json:"start"`
-	End      int64   `bson:"end" json:"end"`
-	Duration int64   `bson:"duration" json:"duration"`
-	Events   []Event `bson:"events" json:"events"`
+	ID       string   `bson:"_id" json:"id"`
+	Name     string   `bson:"name" json:"name"`
+	OwnerID  string   `bson:"ownerId" json:"ownerId"`
+	Status   string   `bson:"status" json:"status"`
+	Start    int64    `bson:"start" json:"start"`
+	End      int64    `bson:"end" json:"end"`
+	Duration int64    `bson:"duration" json:"duration"`
+	Events   []Event  `bson:"events" json:"events"`
+	Tags     []string `bson:"tags" json:"tags"`
 }
 
 func NewTask() *Task {

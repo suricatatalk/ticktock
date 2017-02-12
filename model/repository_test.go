@@ -11,12 +11,13 @@ func TestOpen(t *testing.T) {
 		ConnectionString: "mongodb://localhost/ticktock_test",
 	}
 
-	err := Open(cfg)
+	err := DB.Open(cfg)
+	InitializeRepository(DB)
 	if err != nil {
 		log.Println("Cannot open db session: " + err.Error())
 		t.FailNow()
 	}
-	defer Close()
+	defer DB.Close()
 
 	task := NewTask()
 	err = Tasks.Save(task)

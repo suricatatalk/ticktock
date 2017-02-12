@@ -9,23 +9,9 @@ import (
 	"gopkg.in/mgo.v2"
 )
 
-func init() {
-	domainCfg := StorageConfig{}
-	b, err := ioutil.ReadFile("database.json")
-	if err != nil {
-		log.Println(err.Error())
-	}
-	enc := json.NewDecoder(bytes.NewReader(b))
-	err = enc.Decode(&domainCfg)
-	if err != nil {
-		log.Fatalln(err.Error())
-	}
-	DB.Open(domainCfg["Development"])
-	InitializeRepository(DB)
-}
-
-type StorageConfig map[string]Environment
-
+// Environment describes the configuration
+// for environment, where the application
+// runs
 type Environment struct {
 	ConnectionString string
 	Password         string
@@ -65,4 +51,19 @@ func (db *Database) Open(cfg Environment) error {
 
 type MgoRepository struct {
 	*mgo.Collection
+}
+
+func InitDB(cfgFile, env string) {
+	var c map[string]Environment
+	b, err := ioutil.ReadFile(cfgFile)
+	if err != nil {
+		log.Fatalln(err.Error())
+	}
+	enc := json.NewDecoder(bytes.NewReader(b))
+	enc.Decode(c)
+	if err != nil {
+		log.Fatalln(err.Error())
+	}
+	DB.Open(c[env])
+	InitializeRepository(DB)
 }

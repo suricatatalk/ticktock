@@ -1,12 +1,12 @@
-package logic
+package logic_test
 
 import (
 	"testing"
 
 	"fmt"
 
+	"github.com/sohlich/ticktock/logic"
 	"github.com/sohlich/ticktock/model"
-	"github.com/sohlich/ticktock/security"
 )
 
 type NoOpTaskRepo struct {
@@ -52,14 +52,14 @@ func (r *NoOpTaskRepo) Save(t *model.Task) error {
 func TestStart(t *testing.T) {
 	mock := &NoOpTaskRepo{}
 	model.Tasks = mock
-	event := EventDTO{
+	event := logic.EventDTO{
 		TaskName:        "Test task",
 		EventTypeString: "start",
 	}
-	testUser := security.User{
+	testUser := model.User{
 		ID: "1234@test",
 	}
-	task, _ := Start(testUser, &event)
+	task, _ := logic.Start(testUser, &event)
 
 	if mock.OwnerID != testUser.ID {
 		t.Errorf("OwnerID does not match")
@@ -75,14 +75,14 @@ func TestStart(t *testing.T) {
 func TestPause(t *testing.T) {
 	mock := &NoOpTaskRepo{}
 	model.Tasks = mock
-	event := &EventDTO{
+	event := &logic.EventDTO{
 		TaskName:        "Test task",
 		EventTypeString: "start",
 	}
-	testUser := security.User{
+	testUser := model.User{
 		ID: "1234@test",
 	}
-	task, _ := Start(testUser, event)
+	task, _ := logic.Start(testUser, event)
 
 	event.TaskID = "1234"
 	event.EventTypeString = "pause"
@@ -95,7 +95,7 @@ func TestPause(t *testing.T) {
 	}
 
 	var err error
-	task, err = Pause(testUser, event)
+	task, err = logic.Pause(testUser, event)
 
 	if err != nil {
 		t.Error("ID of task does not match")

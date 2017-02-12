@@ -1,35 +1,38 @@
 package main
 
 import (
+	"bytes"
+	"encoding/json"
 	"fmt"
+	"io/ioutil"
 	"log"
 	"net/http"
 	"os"
 	"os/signal"
 	"syscall"
 
-	"encoding/json"
-
 	"strings"
-
-	"io/ioutil"
-
-	"bytes"
 
 	"github.com/braintree/manners"
 	"github.com/gorilla/context"
+	"github.com/gorilla/sessions"
+	"github.com/markbates/goth"
 	"github.com/markbates/goth/gothic"
+	"github.com/markbates/goth/providers/github"
+	"github.com/markbates/goth/providers/twitter"
 	"github.com/sohlich/ticktock/handler"
-	"github.com/sohlich/ticktock/security"
+	"github.com/sohlich/ticktock/model"
 )
 
 func main() {
-	configureApp()
+	log.Printf("Starting application %s", "TickTock")
+	model.InitDB("database.json", "Development")
+	handler.InitGoth()
 
 	mux := http.NewServeMux()
 	appHandler := http.FileServer(http.Dir("/Users/radek/Projects/Html/ticktock/ticktock/dist"))
 	mux.HandleFunc("/auth", gothic.BeginAuthHandler)
-	mux.HandleFunc("/callback", security.SocialCallbackHandler)
+	mux.HandleFunc("/callback", handler.SocialCallbackHandler)
 	mux.HandleFunc("/tasks", handler.JWTAuthHandler(handler.Tasks))
 	mux.HandleFunc("/events", handler.JWTAuthHandler(handler.Events))
 	mux.HandleFunc("/", func(rw http.ResponseWriter, req *http.Request) {
@@ -66,13 +69,29 @@ func main() {
 	}
 }
 
-func configureApp() {
-	config := security.SecurityConfig{}
-	b, err := ioutil.ReadFile("config.json")
+func InitDB() {
+
+}
+
+func InitGoth() {
+	cfg := handler.SecurityConfig{}
+	readFileToStruct("config.json", &cfg)
+	log.Println(cfg.String())
+	gothic.Store = sessions.NewCookieStore([]byte(cfg.JWTSecret))
+	goth.UseProviders(
+		twitter.New(cfg.Social["twitter"].ClientID, cfg.Social["twitter"].Secret, "https://"+cfg.BaseURL+"/callback?provider=twitter"),
+		github.New(cfg.Social["github"].ClientID, cfg.Social["github"].Secret, "https://"+cfg.BaseURL+"/callback?provider=github"),
+	)
+}
+
+func readFileToStruct(file string, cfg interface{}) {
+	b, err := ioutil.ReadFile(file)
 	if err != nil {
-		log.Println(err.Error())
+		log.Fatalln(err.Error())
 	}
 	enc := json.NewDecoder(bytes.NewReader(b))
-	enc.Decode(&config)
-	security.Configure(config)
+	enc.Decode(cfg)
+	if err != nil {
+		log.Fatalln(err.Error())
+	}
 }
