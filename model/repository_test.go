@@ -26,3 +26,13 @@ func TestOpen(t *testing.T) {
 		t.FailNow()
 	}
 }
+
+func InitializeRepository(db *Database) error {
+	var err error
+	Tasks = &MgoTaskRepository{
+		MgoRepository{
+			db.Database().C("tasks"),
+		},
+	}
+	return err
+}

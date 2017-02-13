@@ -10,6 +10,8 @@ import (
 
 	"bytes"
 
+	"net/url"
+
 	jwt "github.com/dgrijalva/jwt-go"
 	"github.com/gorilla/sessions"
 	"github.com/markbates/goth"
@@ -68,10 +70,9 @@ func SocialCallbackHandler(rw http.ResponseWriter, req *http.Request) {
 	user, err := gothic.CompleteUserAuth(rw, req)
 	if err != nil {
 		log.Println(err)
-		rw.WriteHeader(http.StatusUnauthorized)
+		http.Redirect(rw, req, "/login?error="+url.QueryEscape(err.Error()), http.StatusPermanentRedirect)
 		return
 	}
-	log.Println("Got user:", user)
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
 		"ID":        fmt.Sprintf("%s@%s", user.UserID, user.Provider),
 		"FirstName": user.FirstName,

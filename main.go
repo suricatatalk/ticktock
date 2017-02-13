@@ -1,10 +1,7 @@
 package main
 
 import (
-	"bytes"
-	"encoding/json"
 	"fmt"
-	"io/ioutil"
 	"log"
 	"net/http"
 	"os"
@@ -15,11 +12,7 @@ import (
 
 	"github.com/braintree/manners"
 	"github.com/gorilla/context"
-	"github.com/gorilla/sessions"
-	"github.com/markbates/goth"
 	"github.com/markbates/goth/gothic"
-	"github.com/markbates/goth/providers/github"
-	"github.com/markbates/goth/providers/twitter"
 	"github.com/sohlich/ticktock/handler"
 	"github.com/sohlich/ticktock/model"
 )
@@ -35,6 +28,7 @@ func main() {
 	mux.HandleFunc("/callback", handler.SocialCallbackHandler)
 	mux.HandleFunc("/tasks", handler.JWTAuthHandler(handler.Tasks))
 	mux.HandleFunc("/events", handler.JWTAuthHandler(handler.Events))
+	mux.HandleFunc("/tags", handler.JWTAuthHandler(handler.Tags))
 	mux.HandleFunc("/", func(rw http.ResponseWriter, req *http.Request) {
 		log.Printf("Handling %v", req.URL)
 		if !strings.Contains(req.URL.Path, ".") {
@@ -66,32 +60,5 @@ func main() {
 			server.BlockingClose()
 			os.Exit(0)
 		}
-	}
-}
-
-func InitDB() {
-
-}
-
-func InitGoth() {
-	cfg := handler.SecurityConfig{}
-	readFileToStruct("config.json", &cfg)
-	log.Println(cfg.String())
-	gothic.Store = sessions.NewCookieStore([]byte(cfg.JWTSecret))
-	goth.UseProviders(
-		twitter.New(cfg.Social["twitter"].ClientID, cfg.Social["twitter"].Secret, "https://"+cfg.BaseURL+"/callback?provider=twitter"),
-		github.New(cfg.Social["github"].ClientID, cfg.Social["github"].Secret, "https://"+cfg.BaseURL+"/callback?provider=github"),
-	)
-}
-
-func readFileToStruct(file string, cfg interface{}) {
-	b, err := ioutil.ReadFile(file)
-	if err != nil {
-		log.Fatalln(err.Error())
-	}
-	enc := json.NewDecoder(bytes.NewReader(b))
-	enc.Decode(cfg)
-	if err != nil {
-		log.Fatalln(err.Error())
 	}
 }

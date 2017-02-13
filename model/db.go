@@ -49,10 +49,6 @@ func (db *Database) Open(cfg Environment) error {
 	return nil
 }
 
-type MgoRepository struct {
-	*mgo.Collection
-}
-
 func InitDB(cfgFile, env string) {
 	var c map[string]Environment
 	b, err := ioutil.ReadFile(cfgFile)
@@ -66,4 +62,24 @@ func InitDB(cfgFile, env string) {
 	}
 	DB.Open(c[env])
 	InitializeRepository(DB)
+}
+
+func Close() {
+	if DB.Session() != nil {
+		DB.Close()
+	}
+}
+
+type MgoRepository struct {
+	*mgo.Collection
+}
+
+func InitializeRepository(db *Database) error {
+	var err error
+	Tasks = &MgoTaskRepository{
+		MgoRepository{
+			db.Database().C("tasks"),
+		},
+	}
+	return err
 }

@@ -31,6 +31,7 @@ func getTasks(user model.User, rw http.ResponseWriter, req *http.Request) {
 	if err != nil {
 		log.Printf("Error while loading tasks: " + err.Error())
 		rw.WriteHeader(http.StatusInternalServerError)
+		return
 	}
 	encoder := json.NewEncoder(rw)
 	encoder.Encode(all)
@@ -47,6 +48,7 @@ func Events(user model.User, rw http.ResponseWriter, req *http.Request) {
 	event := &model.Event{}
 	if err := json.NewDecoder(req.Body).Decode(event); err != nil {
 		rw.WriteHeader(http.StatusBadRequest)
+		return
 	}
 	defer req.Body.Close()
 
@@ -76,4 +78,25 @@ func Events(user model.User, rw http.ResponseWriter, req *http.Request) {
 	}
 
 	json.NewEncoder(rw).Encode(task)
+}
+
+// Handles the tags
+func Tags(user model.User, rw http.ResponseWriter, req *http.Request) {
+	if req.Method != http.MethodPost && req.Method != http.MethodPut {
+		rw.WriteHeader(http.StatusMethodNotAllowed)
+		return
+	}
+
+	switch req.Method {
+	case http.MethodPost:
+		t := &model.Task{}
+		if err := json.NewDecoder(req.Body).Decode(t); err != nil {
+			rw.WriteHeader(http.StatusBadRequest)
+			return
+		}
+		defer req.Body.Close()
+		model.Tasks.InsertTags(t.ID, t.Tags)
+
+	}
+
 }
