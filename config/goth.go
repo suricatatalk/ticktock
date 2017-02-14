@@ -1,4 +1,4 @@
-package handler
+package config
 
 import (
 	"encoding/json"
@@ -18,7 +18,7 @@ import (
 	"github.com/markbates/goth/gothic"
 	"github.com/markbates/goth/providers/github"
 	"github.com/markbates/goth/providers/twitter"
-	"github.com/sohlich/ticktock/model"
+	"github.com/sohlich/ticktock/user"
 )
 
 type OAuthConfig struct {
@@ -87,7 +87,7 @@ func SocialCallbackHandler(rw http.ResponseWriter, req *http.Request) {
 	http.Redirect(rw, req, "/login?token="+tkn, http.StatusPermanentRedirect)
 }
 
-type SecuredHandler func(user model.User, rw http.ResponseWriter, req *http.Request)
+type SecuredHandler func(user user.User, rw http.ResponseWriter, req *http.Request)
 
 func JWTAuthHandler(h SecuredHandler) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
@@ -107,7 +107,7 @@ func JWTAuthHandler(h SecuredHandler) http.HandlerFunc {
 			return
 		}
 
-		user := model.User{}
+		user := user.User{}
 		if claims, ok := token.Claims.(jwt.MapClaims); ok {
 			user.ID, _ = claims["ID"].(string)
 			user.Firstname, _ = claims["Firstname"].(string)

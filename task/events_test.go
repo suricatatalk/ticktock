@@ -1,22 +1,22 @@
-package model_test
+package task_test
 
 import (
 	"testing"
 
 	"fmt"
 
-	"github.com/sohlich/ticktock/model"
+	"github.com/sohlich/ticktock/task"
 )
 
 type NoOpTaskRepo struct {
 	CalledID     string
 	OwnerID      string
 	Status       string
-	Task         *model.Task
+	Task         *task.Task
 	FindFunction FindFunc
 }
 
-type FindFunc func(id string) (*model.Task, error)
+type FindFunc func(id string) (*task.Task, error)
 
 func (r *NoOpTaskRepo) Reset() {
 	r.CalledID = ""
@@ -25,7 +25,7 @@ func (r *NoOpTaskRepo) Reset() {
 	r.Task = nil
 }
 
-func (r *NoOpTaskRepo) FindById(id string) (*model.Task, error) {
+func (r *NoOpTaskRepo) FindById(id string) (*task.Task, error) {
 
 	if r.FindFunction != nil {
 		return r.FindFunction(id)
@@ -34,31 +34,35 @@ func (r *NoOpTaskRepo) FindById(id string) (*model.Task, error) {
 	return r.Task, nil
 }
 
-func (r *NoOpTaskRepo) FindAllByOwner(ownerId string, limit int) ([]*model.Task, error) {
+func (r *NoOpTaskRepo) FindAllByOwner(ownerId string, limit int) ([]*task.Task, error) {
 	return nil, nil
 }
 
-func (r *NoOpTaskRepo) FindAllByStatusAndOwner(status string, ownerId string) ([]*model.Task, error) {
+func (r *NoOpTaskRepo) FindAllByStatusAndOwner(status string, ownerId string) ([]*task.Task, error) {
 	r.OwnerID = ownerId
 	r.Status = status
 	return nil, nil
 }
 
-func (r *NoOpTaskRepo) Save(t *model.Task) error {
+func (r *NoOpTaskRepo) Save(t *task.Task) error {
+	return nil
+}
+
+func (r *NoOpTaskRepo) InsertTags(id string, tags []string) error {
 	return nil
 }
 
 func TestStart(t *testing.T) {
 	mock := &NoOpTaskRepo{}
-	model.Tasks = mock
-	event := model.Event{
+	task.Tasks = mock
+	event := task.Event{
 		TaskName:  "Test task",
 		EventType: "start",
 	}
-	testUser := model.User{
+	testUser := task.User{
 		ID: "1234@test",
 	}
-	task, _ := model.Start(testUser, &event)
+	task, _ := task.Start(testUser, &event)
 
 	if mock.OwnerID != testUser.ID {
 		t.Errorf("OwnerID does not match")
@@ -73,20 +77,20 @@ func TestStart(t *testing.T) {
 
 func TestPause(t *testing.T) {
 	mock := &NoOpTaskRepo{}
-	model.Tasks = mock
-	event := &model.Event{
+	task.Tasks = mock
+	event := &task.Event{
 		TaskName:  "Test task",
 		EventType: "start",
 	}
-	testUser := model.User{
+	testUser := task.User{
 		ID: "1234@test",
 	}
-	task, _ := model.Start(testUser, event)
+	task, _ := task.Start(testUser, event)
 
 	event.TaskID = "1234"
 	event.EventType = "pause"
 
-	mock.FindFunction = func(id string) (*model.Task, error) {
+	mock.FindFunction = func(id string) (*task.Task, error) {
 		if id == event.TaskID {
 			return task, nil
 		}
@@ -94,7 +98,7 @@ func TestPause(t *testing.T) {
 	}
 
 	var err error
-	task, err = model.Pause(testUser, event)
+	task, err = task.Pause(testUser, event)
 
 	if err != nil {
 		t.Error("ID of task does not match")
@@ -106,7 +110,7 @@ func TestPause(t *testing.T) {
 		t.FailNow()
 	}
 
-	if task.Events[1].EventType != model.EventPause {
+	if task.Events[1].EventType != task.EventPause {
 		t.Errorf("Bad second event %v:", task.Events[1])
 		t.FailNow()
 	}

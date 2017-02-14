@@ -1,8 +1,10 @@
-package model
+package task
 
 import (
 	"log"
 	"testing"
+
+	"github.com/sohlich/ticktock/config"
 )
 
 func TestOpen(t *testing.T) {
@@ -11,7 +13,7 @@ func TestOpen(t *testing.T) {
 		ConnectionString: "mongodb://localhost/ticktock_test",
 	}
 
-	err := DB.Open(cfg)
+	err := config.DB.Open(cfg)
 	InitializeRepository(DB)
 	if err != nil {
 		log.Println("Cannot open db session: " + err.Error())
@@ -25,14 +27,4 @@ func TestOpen(t *testing.T) {
 		log.Println("Cannot save task: " + err.Error())
 		t.FailNow()
 	}
-}
-
-func InitializeRepository(db *Database) error {
-	var err error
-	Tasks = &MgoTaskRepository{
-		MgoRepository{
-			db.Database().C("tasks"),
-		},
-	}
-	return err
 }

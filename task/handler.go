@@ -1,33 +1,30 @@
-package handler
+package task
 
 import (
+	"encoding/json"
 	"log"
 	"net/http"
-
-	"encoding/json"
-
+	"strconv"
 	"strings"
 
-	"strconv"
-
-	"github.com/sohlich/ticktock/model"
+	"github.com/sohlich/ticktock/user"
 )
 
 // Handler to dispatch task requests
-func Tasks(user model.User, rw http.ResponseWriter, req *http.Request) {
+func TasksHandler(user user.User, rw http.ResponseWriter, req *http.Request) {
 	switch req.Method {
 	case http.MethodGet:
-		getTasks(user, rw, req)
+		getTasksHandler(user, rw, req)
 	}
 }
 
-func getTasks(user model.User, rw http.ResponseWriter, req *http.Request) {
+func getTasksHandler(user user.User, rw http.ResponseWriter, req *http.Request) {
 	req.ParseForm()
 	limit, err := strconv.ParseInt(req.Form.Get("limit"), 10, 32)
 	if err != nil {
 		limit = 10
 	}
-	all, err := model.Tasks.FindAllByOwner(user.ID, int(limit))
+	all, err := Tasks.FindAllByOwner(user.ID, int(limit))
 	if err != nil {
 		log.Printf("Error while loading tasks: " + err.Error())
 		rw.WriteHeader(http.StatusInternalServerError)
@@ -38,14 +35,14 @@ func getTasks(user model.User, rw http.ResponseWriter, req *http.Request) {
 }
 
 // Events handler provides api for events
-func Events(user model.User, rw http.ResponseWriter, req *http.Request) {
+func EventsHandler(user user.User, rw http.ResponseWriter, req *http.Request) {
 	if req.Method != http.MethodPost && req.Method != http.MethodPut {
 		rw.WriteHeader(http.StatusMethodNotAllowed)
 		return
 	}
 
 	// Decode posted event
-	event := &model.Event{}
+	event := &Event{}
 	if err := json.NewDecoder(req.Body).Decode(event); err != nil {
 		rw.WriteHeader(http.StatusBadRequest)
 		return
@@ -54,18 +51,18 @@ func Events(user model.User, rw http.ResponseWriter, req *http.Request) {
 
 	log.Printf("Handling event: %v\n", event)
 
-	var eventHandler model.EventFunction
+	var eventHandler EventFunction
 	switch strings.ToLower(event.EventType) {
 	case "start":
 		if len(event.TaskID) == 0 {
-			eventHandler = model.Start
+			eventHandler = Start
 		} else {
-			eventHandler = model.Resume
+			eventHandler = Resume
 		}
 	case "pause":
-		eventHandler = model.Pause
+		eventHandler = Pause
 	case "finish":
-		eventHandler = model.Finish
+		eventHandler = Finish
 	default:
 		rw.WriteHeader(http.StatusBadRequest)
 		return
@@ -81,7 +78,7 @@ func Events(user model.User, rw http.ResponseWriter, req *http.Request) {
 }
 
 // Handles the tags
-func Tags(user model.User, rw http.ResponseWriter, req *http.Request) {
+func TagsHandler(user user.User, rw http.ResponseWriter, req *http.Request) {
 	if req.Method != http.MethodPost && req.Method != http.MethodPut {
 		rw.WriteHeader(http.StatusMethodNotAllowed)
 		return
@@ -89,14 +86,12 @@ func Tags(user model.User, rw http.ResponseWriter, req *http.Request) {
 
 	switch req.Method {
 	case http.MethodPost:
-		t := &model.Task{}
+		t := &Task{}
 		if err := json.NewDecoder(req.Body).Decode(t); err != nil {
 			rw.WriteHeader(http.StatusBadRequest)
 			return
 		}
 		defer req.Body.Close()
-		model.Tasks.InsertTags(t.ID, t.Tags)
-
+		Tasks.InsertTags(t.ID, t.Tags)
 	}
-
 }

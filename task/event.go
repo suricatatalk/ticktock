@@ -1,9 +1,11 @@
-package model
+package task
 
 import (
 	"fmt"
 	"log"
 	"time"
+
+	"github.com/sohlich/ticktock/user"
 )
 
 const (
@@ -43,9 +45,9 @@ type Event struct {
 	Duration   int64  `bson:"duration" json:"duration"`
 }
 
-type EventFunction func(user User, event *Event) (*Task, error)
+type EventFunction func(user user.User, event *Event) (*Task, error)
 
-func Start(user User, event *Event) (*Task, error) {
+func Start(user user.User, event *Event) (*Task, error) {
 	tasks, err := Tasks.FindAllByStatusAndOwner("running", user.ID)
 	if len(tasks) > 0 {
 		return nil, fmt.Errorf("Another task is running")
@@ -66,17 +68,17 @@ func Start(user User, event *Event) (*Task, error) {
 	return task, err
 }
 
-func Pause(user User, event *Event) (*Task, error) {
+func Pause(user user.User, event *Event) (*Task, error) {
 	logChange("Pause", user.ID, event.TaskID)
 	return changeState(EventPause, user, event)
 }
 
-func Resume(user User, event *Event) (*Task, error) {
+func Resume(user user.User, event *Event) (*Task, error) {
 	logChange("Resume", user.ID, event.TaskID)
 	return changeState(EventStart, user, event)
 }
 
-func Finish(user User, event *Event) (*Task, error) {
+func Finish(user user.User, event *Event) (*Task, error) {
 	logChange("Finish", user.ID, event.TaskID)
 	return changeState(EventFinish, user, event)
 }
@@ -84,7 +86,7 @@ func logChange(event, userID, taskID string) {
 	log.Printf("[%s] %s task_id: %s ", userID, event, taskID)
 }
 
-func changeState(action string, user User, event *Event) (*Task, error) {
+func changeState(action string, user user.User, event *Event) (*Task, error) {
 	task, err := Tasks.FindById(event.TaskID)
 	if err != nil {
 		return nil, err

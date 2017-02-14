@@ -1,9 +1,10 @@
-package model
+package task
 
 import (
 	"time"
 
 	"github.com/goadesign/goa/uuid"
+	"github.com/sohlich/ticktock/config"
 	"gopkg.in/mgo.v2/bson"
 )
 
@@ -78,10 +79,20 @@ type TaskRepository interface {
 }
 
 type MgoTaskRepository struct {
-	MgoRepository
+	config.MgoRepository
 }
 
 var Tasks TaskRepository
+
+func InitializeRepository(db *config.Database) error {
+	var err error
+	Tasks = &MgoTaskRepository{
+		config.MgoRepository{
+			db.Database().C("tasks"),
+		},
+	}
+	return err
+}
 
 func (m *MgoTaskRepository) Save(t *Task) error {
 	_, err := m.Upsert(bson.M{"_id": t.ID}, t)

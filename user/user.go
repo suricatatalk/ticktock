@@ -1,8 +1,8 @@
-package model
+package user
 
 type UserRepository interface {
-	FindById(id string) (*Task, error)
-	Save(t *Task) error
+	FindById(id string) (*User, error)
+	Save(t *User) error
 }
 
 type User struct {

@@ -1,4 +1,4 @@
-package model
+package config
 
 import (
 	"bytes"
@@ -61,7 +61,7 @@ func InitDB(cfgFile, env string) {
 		log.Fatalln(err.Error())
 	}
 	DB.Open(c[env])
-	InitializeRepository(DB)
+
 }
 
 func Close() {
@@ -72,14 +72,4 @@ func Close() {
 
 type MgoRepository struct {
 	*mgo.Collection
-}
-
-func InitializeRepository(db *Database) error {
-	var err error
-	Tasks = &MgoTaskRepository{
-		MgoRepository{
-			db.Database().C("tasks"),
-		},
-	}
-	return err
 }
