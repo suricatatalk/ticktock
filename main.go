@@ -14,23 +14,27 @@ import (
 	"github.com/gorilla/context"
 	"github.com/markbates/goth/gothic"
 	"github.com/sohlich/ticktock/config"
+	"github.com/sohlich/ticktock/goth"
 	"github.com/sohlich/ticktock/task"
+	"github.com/sohlich/ticktock/user"
 )
 
 func main() {
 	log.Printf("Starting application %s", "TickTock")
 	config.InitDB("database.json", "Development")
-	config.InitGoth()
+	goth.InitGoth()
 
 	task.InitializeRepository(config.DB)
+	user.InitializeRepository(config.DB)
 
 	mux := http.NewServeMux()
 	appHandler := http.FileServer(http.Dir("/Users/radek/Projects/Html/ticktock/ticktock/dist"))
 	mux.HandleFunc("/auth", gothic.BeginAuthHandler)
-	mux.HandleFunc("/callback", config.SocialCallbackHandler)
-	mux.HandleFunc("/tasks", config.JWTAuthHandler(task.TasksHandler))
-	mux.HandleFunc("/events", config.JWTAuthHandler(task.EventsHandler))
-	mux.HandleFunc("/tags", config.JWTAuthHandler(task.TagsHandler))
+	mux.HandleFunc("/callback", goth.SocialCallbackHandler)
+	mux.HandleFunc("/tasks", goth.JWTAuthHandler(task.TasksHandler))
+	mux.HandleFunc("/events", goth.JWTAuthHandler(task.EventsHandler))
+	mux.HandleFunc("/tags", goth.JWTAuthHandler(task.TagsHandler))
+	mux.HandleFunc("/user", goth.JWTAuthHandler(user.UserHandler))
 	mux.HandleFunc("/", func(rw http.ResponseWriter, req *http.Request) {
 		log.Printf("Handling %v", req.URL)
 		if !strings.Contains(req.URL.Path, ".") {

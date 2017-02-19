@@ -1,13 +1,19 @@
 package user
 
-type UserRepository interface {
-	FindById(id string) (*User, error)
-	Save(t *User) error
-}
+import uuid "github.com/satori/go.uuid"
 
 type User struct {
-	ID        string
-	Firstname string
-	Lastname  string
+	ID        string `bson:"_id" json:"id"`
+	Firstname string `bson:"firstName" json:"firstName"`
+	Lastname  string `bson:"lastName" json:"lastName"`
 	Accounts  []string
+	Email     string `bson:"email" json:"email"`
+}
+
+type Users []User
+
+func NewUser() *User {
+	return &User{
+		ID: uuid.NewV4().String(),
+	}
 }

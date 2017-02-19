@@ -24,7 +24,7 @@ func getTasksHandler(user user.User, rw http.ResponseWriter, req *http.Request) 
 	if err != nil {
 		limit = 10
 	}
-	all, err := Tasks.FindAllByOwner(user.ID, int(limit))
+	all, err := Repository.FindAllByOwner(user.ID, int(limit))
 	if err != nil {
 		log.Printf("Error while loading tasks: " + err.Error())
 		rw.WriteHeader(http.StatusInternalServerError)
@@ -92,6 +92,6 @@ func TagsHandler(user user.User, rw http.ResponseWriter, req *http.Request) {
 			return
 		}
 		defer req.Body.Close()
-		Tasks.InsertTags(t.ID, t.Tags)
+		Repository.InsertTags(t.ID, t.Tags)
 	}
 }

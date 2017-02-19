@@ -48,7 +48,7 @@ type Event struct {
 type EventFunction func(user user.User, event *Event) (*Task, error)
 
 func Start(user user.User, event *Event) (*Task, error) {
-	tasks, err := Tasks.FindAllByStatusAndOwner("running", user.ID)
+	tasks, err := Repository.FindAllByStatusAndOwner("running", user.ID)
 	if len(tasks) > 0 {
 		return nil, fmt.Errorf("Another task is running")
 	}
@@ -64,7 +64,7 @@ func Start(user user.User, event *Event) (*Task, error) {
 	task.Name = event.TaskName
 	task.Start = time.Now().Unix()
 	task.AddEvent(EventStart, task.Start)
-	err = Tasks.Save(task)
+	err = Repository.Save(task)
 	return task, err
 }
 
@@ -87,7 +87,7 @@ func logChange(event, userID, taskID string) {
 }
 
 func changeState(action string, user user.User, event *Event) (*Task, error) {
-	task, err := Tasks.FindById(event.TaskID)
+	task, err := Repository.FindById(event.TaskID)
 	if err != nil {
 		return nil, err
 	}
@@ -101,6 +101,6 @@ func changeState(action string, user user.User, event *Event) (*Task, error) {
 		duration = duration + tsk.Duration
 	}
 	task.Duration = duration
-	Tasks.Save(task)
+	Repository.Save(task)
 	return task, nil
 }

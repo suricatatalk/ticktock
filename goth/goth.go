@@ -1,4 +1,4 @@
-package config
+package goth
 
 import (
 	"encoding/json"
@@ -67,16 +67,30 @@ func readFileToStruct(file string, cfg interface{}) {
 }
 
 func SocialCallbackHandler(rw http.ResponseWriter, req *http.Request) {
-	user, err := gothic.CompleteUserAuth(rw, req)
-	if err != nil {
+	u, err := gothic.CompleteUserAuth(rw, req)
+	if err != nil || len(u.UserID) == 0 {
 		log.Println(err)
 		http.Redirect(rw, req, "/login?error="+url.QueryEscape(err.Error()), http.StatusPermanentRedirect)
 		return
 	}
+
+	ID := fmt.Sprintf("%s@%s", u.UserID, u.Provider)
+
+	// try to fill
+	var dUser *user.User
+	dUser, err = user.Repository.FindById(ID)
+	var f string
+	if len(dUser.ID) == 0 {
+		f = "&firstlogin=true"
+	} else {
+		u.FirstName = dUser.Firstname
+		u.LastName = dUser.Lastname
+	}
+
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
-		"ID":        fmt.Sprintf("%s@%s", user.UserID, user.Provider),
-		"FirstName": user.FirstName,
-		"LastName":  user.LastName,
+		"ID":        ID,
+		"FirstName": u.FirstName,
+		"LastName":  u.LastName,
 		"expires":   time.Now().Add(72 * time.Hour).Unix(),
 	})
 	tkn, err := token.SignedString([]byte(cfg.JWTSecret))
@@ -84,7 +98,8 @@ func SocialCallbackHandler(rw http.ResponseWriter, req *http.Request) {
 	session.Values[gothic.SessionName] = ""
 	session.Options.MaxAge = -1
 	session.Save(req, rw)
-	http.Redirect(rw, req, "/login?token="+tkn, http.StatusPermanentRedirect)
+
+	http.Redirect(rw, req, "/login?token="+tkn+f, http.StatusPermanentRedirect)
 }
 
 type SecuredHandler func(user user.User, rw http.ResponseWriter, req *http.Request)
