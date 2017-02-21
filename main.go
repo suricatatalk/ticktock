@@ -1,17 +1,13 @@
 package main
 
 import (
-	"fmt"
+	"context"
 	"log"
 	"net/http"
 	"os"
 	"os/signal"
-	"syscall"
+	"time"
 
-	"strings"
-
-	"github.com/braintree/manners"
-	"github.com/gorilla/context"
 	"github.com/markbates/goth/gothic"
 	"github.com/sohlich/ticktock/config"
 	"github.com/sohlich/ticktock/goth"
@@ -27,44 +23,34 @@ func main() {
 	task.InitializeRepository(config.DB)
 	user.InitializeRepository(config.DB)
 
+	base := "/Users/radek/Projects/Html/ticktock/ticktock/dist"
+
 	mux := http.NewServeMux()
-	appHandler := http.FileServer(http.Dir("/Users/radek/Projects/Html/ticktock/ticktock/dist"))
 	mux.HandleFunc("/auth", gothic.BeginAuthHandler)
 	mux.HandleFunc("/callback", goth.SocialCallbackHandler)
 	mux.HandleFunc("/tasks", goth.JWTAuthHandler(task.TasksHandler))
 	mux.HandleFunc("/events", goth.JWTAuthHandler(task.EventsHandler))
 	mux.HandleFunc("/tags", goth.JWTAuthHandler(task.TagsHandler))
 	mux.HandleFunc("/user", goth.JWTAuthHandler(user.UserHandler))
-	mux.HandleFunc("/", func(rw http.ResponseWriter, req *http.Request) {
-		log.Printf("Handling %v", req.URL)
-		if !strings.Contains(req.URL.Path, ".") {
-			req.URL.Path = "/"
-		}
-		appHandler.ServeHTTP(rw, req)
-	})
+	mux.Handle("/", &config.WebApp{base})
 
-	server := manners.NewServer()
-	server.Handler = context.ClearHandler(mux)
-
-	errChan := make(chan (error))
+	srv := &http.Server{Addr: ":7070", Handler: mux}
 	go func() {
-		server.Addr = ":7070"
-		errChan <- server.ListenAndServe()
-	}()
-
-	signalChan := make(chan os.Signal, 1)
-	signal.Notify(signalChan, syscall.SIGINT, syscall.SIGTERM)
-
-	for {
-		select {
-		case err := <-errChan:
-			if err != nil {
-				log.Fatal(err)
-			}
-		case s := <-signalChan:
-			log.Println(fmt.Sprintf("Captured %v. Exiting...", s))
-			server.BlockingClose()
-			os.Exit(0)
+		// service connections
+		if err := srv.ListenAndServe(); err != nil {
+			log.Printf("listen: %s\n", err)
 		}
-	}
+	}()
+	// subscribe to SIGINT signals
+	stopChan := make(chan os.Signal)
+	signal.Notify(stopChan, os.Interrupt)
+
+	<-stopChan // wait for SIGINT
+	log.Println("Shutting down server...")
+
+	// shut down gracefully, but wait no longer than 5 seconds before halting
+	ctx, _ := context.WithTimeout(context.Background(), 5*time.Second)
+	srv.Shutdown(ctx)
+
+	log.Println("Server gracefully stopped")
 }
